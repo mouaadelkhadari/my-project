@@ -37,7 +37,7 @@ application:
       expiration: 1800000  # expiration du JWT en millisecondes (30 minutes)
   mailing:
     frontend:
-      activation-url: "lien"
+      activation-url: "http://localhost:4200/activate-account"
 
 server:
   port: 8088
