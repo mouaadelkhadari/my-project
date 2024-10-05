@@ -3,11 +3,15 @@ package com.gestionPersonnel.gestionPersonnel.auth;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor
@@ -35,6 +39,12 @@ public class AuthenticationController {
             @RequestParam String token
      ) throws MessagingException {
          service.activateAccount(token);
+     }
+
+
+     @PostMapping("refresh-token")
+    public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
+         service.refreshToken(request, response);
      }
 
 

@@ -1,6 +1,7 @@
 package com.gestionPersonnel.gestionPersonnel.auth;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gestionPersonnel.gestionPersonnel.email.EmailService;
 import com.gestionPersonnel.gestionPersonnel.email.EmailTemplateName;
 import com.gestionPersonnel.gestionPersonnel.role.RoleRepository;
@@ -10,14 +11,20 @@ import com.gestionPersonnel.gestionPersonnel.user.TokenRepository;
 import com.gestionPersonnel.gestionPersonnel.user.User;
 import com.gestionPersonnel.gestionPersonnel.user.UserRepository;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -103,7 +110,8 @@ public class AuthenticationService {
         claims.put("fullName", user.fullName());
 
         var jwtToken = jwtService.generateToken(claims, (User) auth.getPrincipal());
-        return AuthenticationResponse.builder().token(jwtToken).build();
+        var refreshToken = jwtService.generateRefreshToken((User) auth.getPrincipal());
+        return AuthenticationResponse.builder().refreshToken(refreshToken).accessToken(jwtToken).build();
     }
 
     public void activateAccount(String token) throws MessagingException {
@@ -119,4 +127,26 @@ public class AuthenticationService {
         savedToken.setValidatedAt(LocalDateTime.now());
         tokenRepository.save(savedToken);
     }
+
+    public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        final String autHeader = request.getHeader("Authorization");
+        final String refreshToken;
+        final String userEmail;
+        if(autHeader == null || !autHeader.startsWith("Bearer ")) {
+            return;
+        }
+        refreshToken = autHeader.substring(7);
+        userEmail = jwtService.extractUsername(refreshToken);
+        if(userEmail != null) {
+            var user = userRepository.findByEmail(userEmail).orElseThrow();
+            if(jwtService.isTokenValid(refreshToken, user)) {
+                var accessToken = jwtService.generateToken(user);
+                var authResponse = AuthenticationResponse.builder()
+                        .accessToken(accessToken)
+                        .refreshToken(refreshToken)
+                        .build();
+                new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+            }
+    }
+ }
 }

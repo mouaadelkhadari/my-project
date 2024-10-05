@@ -34,7 +34,9 @@ spring:
 application:
   security:
     jwt:
-      expiration: 1800000  # expiration du JWT en millisecondes (30 minutes)
+      expiration: 120000  # expiration du JWT en millisecondes (2 minutes)
+    refreshToken:
+      expiration: 604800000 # expiration du refresh Token en millisecondes (7 jours)
   mailing:
     frontend:
       activation-url: "http://localhost:4200/activate-account"
